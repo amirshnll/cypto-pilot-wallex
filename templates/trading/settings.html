@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Settings | Crypto Pilot{% endblock %}
+{% block nav_settings %}active{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div><span class="eyebrow">Configuration</span>
+    <h1>Bot settings</h1>
+    <p>Manage risk, markets, and signal logic without changing code.</p>
+  </div>
+</header>
+<form method="post" class="settings-form" id="settings-form">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="message error alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+  <section class="panel form-section card p-3 p-md-4">
+    <div class="section-copy"><span class="step">01</span>
+      <h2>Status and markets</h2>
+      <p>Select the markets to analyze in each cycle.</p>
+    </div>
+    <div class="fields">
+      <div class="toggle-row">{{ form.enabled }} {{ form.enabled.label_tag }}</div>
+      <div class="field">{{ form.symbols.label_tag }}{{ form.symbols }}{{ form.symbols.errors }}</div>
+    </div>
+  </section>
+  <section class="panel form-section card p-3 p-md-4">
+    <div class="section-copy"><span class="step">02</span>
+      <h2>Capital and risk</h2>
+      <p>All paper trades and portfolio calculations use Toman.</p>
+    </div>
+    <div class="fields two-col">
+      <div class="field">{{ form.initial_tmn_balance.label_tag }}{{ form.initial_tmn_balance }}{{ form.initial_tmn_balance.errors }}</div>
+      <div class="field">{{ form.risk_level.label_tag }}{{ form.risk_level }}<small>Base risk multiplier per trade: low risk
+          0.5, balanced 1, high risk 1.5. Portfolio limits apply in all modes.</small>{{ form.risk_level.errors }}
+      </div>
+    </div>
+  </section>
+  <section class="panel form-section card p-3 p-md-4">
+    <div class="section-copy"><span class="step">03</span>
+      <h2>Analysis parameters</h2>
+      <p>The fast SMA period must be shorter than the slow SMA period.</p>
+    </div>
+    <div class="fields two-col">
+      <div class="field">{{ form.fast_period.label_tag }}{{ form.fast_period }}{{ form.fast_period.errors }}</div>
+      <div class="field">{{ form.slow_period.label_tag }}{{ form.slow_period }}{{ form.slow_period.errors }}</div>
+      <div class="field">{{ form.rsi_period.label_tag }}{{ form.rsi_period }}{{ form.rsi_period.errors }}</div>
+      <div class="field">{{ form.rsi_buy_ceiling.label_tag }}{{ form.rsi_buy_ceiling }}{{ form.rsi_buy_ceiling.errors }}
+      </div>
+      <div class="field">{{ form.rsi_sell_floor.label_tag }}{{ form.rsi_sell_floor }}{{ form.rsi_sell_floor.errors }}
+      </div>
+    </div>
+  </section>
+  <section class="panel form-section card p-3 p-md-4">
+    <div class="section-copy"><span class="step">03B</span>
+      <h2>Crypto strategy engine</h2>
+      <p>These settings apply only to crypto markets.</p>
+    </div>
+    <div class="fields">
+      <div class="field">{{ form.enabled_strategies.label_tag }}{{ form.enabled_strategies }}{{ form.enabled_strategies.errors }}</div>
+      <div class="field">{{ form.consensus_threshold.label_tag }}{{ form.consensus_threshold }}<small>Between zero and one;
+          higher values produce more conservative decisions.</small>{{ form.consensus_threshold.errors }}</div>
+    </div>
+  </section>
+  <section class="panel form-section card p-3 p-md-4">
+    <div class="section-copy"><span class="step">03C</span>
+      <h2>Separate commodity profile</h2>
+      <p>These parameters and weights are tuned using commodity walk-forward analysis and do not affect crypto markets.</p>
+    </div>
+    <div class="fields two-col">
+      <div class="field">{{ form.commodity_allocation_cap_fraction.label_tag }}{{ form.commodity_allocation_cap_fraction }}<small>For example, 0.20 limits total commodity positions to 20% of current portfolio equity.</small>{{ form.commodity_allocation_cap_fraction.errors }}</div>
+      <div class="field">{{ form.commodity_fast_period.label_tag }}{{ form.commodity_fast_period }}{{ form.commodity_fast_period.errors }}</div>
+      <div class="field">{{ form.commodity_slow_period.label_tag }}{{ form.commodity_slow_period }}{{ form.commodity_slow_period.errors }}</div>
+      <div class="field">{{ form.commodity_rsi_period.label_tag }}{{ form.commodity_rsi_period }}{{ form.commodity_rsi_period.errors }}</div>
+      <div class="field">{{ form.commodity_rsi_buy_ceiling.label_tag }}{{ form.commodity_rsi_buy_ceiling }}{{ form.commodity_rsi_buy_ceiling.errors }}</div>
+      <div class="field">{{ form.commodity_rsi_sell_floor.label_tag }}{{ form.commodity_rsi_sell_floor }}{{ form.commodity_rsi_sell_floor.errors }}</div>
+      <div class="field">{{ form.commodity_consensus_threshold.label_tag }}{{ form.commodity_consensus_threshold }}{{ form.commodity_consensus_threshold.errors }}</div>
+      <div class="field">{{ form.commodity_enabled_strategies.label_tag }}{{ form.commodity_enabled_strategies }}{{ form.commodity_enabled_strategies.errors }}</div>
+      <div class="field">{{ form.commodity_strategy_weights.label_tag }}{{ form.commodity_strategy_weights }}<small>Example: {&quot;momentum&quot;: 2, &quot;macd&quot;: 1}</small>{{ form.commodity_strategy_weights.errors }}</div>
+    </div>
+  </section>
+  <section class="panel form-section card p-3 p-md-4">
+    <div class="section-copy"><span class="step">03D</span>
+      <h2>Risk management</h2>
+      <p>Values are fractions; for example, 0.03 means three percent.</p>
+    </div>
+    <div class="fields two-col">
+      <div class="field">{{ form.stop_loss_fraction.label_tag }}{{ form.stop_loss_fraction }}{{ form.stop_loss_fraction.errors }}</div>
+      <div class="field">{{ form.take_profit_fraction.label_tag }}{{ form.take_profit_fraction }}{{ form.take_profit_fraction.errors }}</div>
+      <div class="field">{{ form.trailing_stop_fraction.label_tag }}{{ form.trailing_stop_fraction }}{{ form.trailing_stop_fraction.errors }}</div>
+      <div class="field">{{ form.maximum_drawdown_fraction.label_tag }}{{ form.maximum_drawdown_fraction }}{{ form.maximum_drawdown_fraction.errors }}</div>
+      <div class="field">{{ form.maximum_open_positions.label_tag }}{{ form.maximum_open_positions }}{{ form.maximum_open_positions.errors }}</div>
+      <div class="field">{{ form.symbol_loss_streak_limit.label_tag }}{{ form.symbol_loss_streak_limit }}{{ form.symbol_loss_streak_limit.errors }}</div>
+      <div class="field">{{ form.symbol_loss_limit_fraction.label_tag }}{{ form.symbol_loss_limit_fraction }}<small>For example, 0.05 means five percent of the initial balance.</small>{{ form.symbol_loss_limit_fraction.errors }}</div>
+      <div class="field">{{ form.symbol_halt_days.label_tag }}{{ form.symbol_halt_days }}{{ form.symbol_halt_days.errors }}</div>
+      <div class="field">{{ form.market_data_stale_hours.label_tag }}{{ form.market_data_stale_hours }}<small>
+New entries for a symbol are halted if its latest closed candle is older than this limit.</small>{{ form.market_data_stale_hours.errors }}
+      </div>
+      <div class="toggle-row">{{ form.emergency_stop }} {{ form.emergency_stop.label_tag }}</div>
+      <div class="toggle-row">{{ form.reset_risk_halt }} {{ form.reset_risk_halt.label_tag }}</div>{% if configuration.risk_halted %}<div class="message error alert alert-danger">Automatic halt is active: {{ configuration.risk_halt_reason }}
+      </div>{% endif %}
+    </div>
+  </section>
+  <section class="panel form-section card p-3 p-md-4">
+    <div class="section-copy"><span class="step">03E</span>
+      <h2>More realistic paper trade execution</h2>
+      <p>Buys use the ask price and sells use the bid price; orders may fill partially depending on market depth.</p>
+    </div>
+    <div class="fields two-col">
+      <div class="field">{{ form.paper_fee_fraction.label_tag }}{{ form.paper_fee_fraction }}<small>
+For example, 0.001 means 0.1%.</small>{{ form.paper_fee_fraction.errors }}</div>
+      <div class="field">{{ form.paper_slippage_bps.label_tag }}{{ form.paper_slippage_bps }}{{ form.paper_slippage_bps.errors }}</div>
+      <div class="field">{{ form.paper_latency_ms.label_tag }}{{ form.paper_latency_ms }}{{ form.paper_latency_ms.errors }}</div>
+      <div class="field">{{ form.paper_max_book_participation.label_tag }}{{ form.paper_max_book_participation }}<small>For example, 0.10 means at most 10% of recorded market depth.</small>{{ form.paper_max_book_participation.errors }}</div>
+    </div>
+  </section>
+  <section class="panel form-section card p-3 p-md-4">
+    <div class="section-copy"><span class="step">04</span>
+      <h2>Wallex connection</h2>
+      <p>The key is stored encrypted and is never displayed again.</p>
+    </div>
+    <div class="fields">
+      <div class="api-state {% if configuration.has_wallex_api_key %}connected{% endif %}">{% if configuration.has_wallex_api_key %}The current key is configured{% else %}No key has been configured yet{% endif %}</div>
+      <div class="field">{{ form.wallex_api_key.label_tag }}{{ form.wallex_api_key }}<small>{{ form.wallex_api_key.help_text }}</small>{{ form.wallex_api_key.errors }}</div>
+    </div>
+  </section>
+  <div class="save-bar"><span>Saved changes take effect on the next cycle.</span><button class="primary btn btn-primary"
+      type="submit">Save settings</button></div>
+<section class="panel card p-3 p-md-4">
+  <h2>Order sizing and shared risk</h2>
+  <p>
+These limits are saved in the main settings form. A value of 0.005 means half a percent. The crypto cap is a group limit, not a statistical correlation estimate.</p>
+  <div class="fields two-col">
+    {% for field in form %}{% if field.name == 'risk_per_trade_fraction' or field.name == 'maximum_total_risk_fraction' or field.name == 'maximum_symbol_allocation_fraction' or field.name == 'maximum_crypto_allocation_fraction' or field.name == 'minimum_order_tmn' %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endif %}{% endfor %}
+  </div>
+</section>
+</form>
+{% if request.user.is_superuser %}
+<section class="panel form-section card p-3 p-md-4">
+  <div class="section-copy">
+    <h2>Clear data and reset</h2>
+    <p>
+All paper trades, positions, charts, market data, backtests, models, and reports will be deleted. Settings, the Wallex key, and the admin account are retained. A backup is created first.</p>
+    <p>
+The bot restarts with the saved initial balance on the next cycle. Risk halts are also cleared. Save any initial balance changes first.</p>
+  </div>
+  <form method="post" action="{% url 'trading:reset_bot' %}" class="fields">
+    {% csrf_token %}
+    <div class="field"><label for="reset-confirmation">Type RESET to confirm</label><input
+        id="reset-confirmation" class="form-control" name="confirmation" required autocomplete="off"></div>
+    <div class="field"><label for="reset-password">Admin account password</label><input id="reset-password" class="form-control" name="password"
+        type="password" required autocomplete="current-password"></div>
+    <button class="primary btn btn-primary" type="submit">Delete all bot data and reset</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

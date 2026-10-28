@@ -1,0 +1,109 @@
+/* Allow grid children to shrink without pushing the document beyond the viewport. */
+.shell {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.main,
+.main>*,
+.panel,
+.metric,
+.content-grid>*,
+.metric-grid>*,
+.dashboard-filters>*,
+.alert-row>* {
+  min-width: 0;
+}
+
+.main {
+  max-width: 100%;
+}
+
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.content-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metric strong,
+.token-price b,
+.alert-row p,
+.message {
+  overflow-wrap: anywhere;
+}
+
+.status-strip,
+.panel-head,
+.token-chart-head,
+.page-header {
+  flex-wrap: wrap;
+}
+
+.panel-head,
+.token-chart-head {
+  gap: 12px;
+}
+
+.token-chart-head>div {
+  min-width: 0;
+}
+
+.dashboard-filters {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.dashboard-filters input,
+.dashboard-filters select {
+  min-width: 0;
+}
+
+.alert-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .content-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metric-grid,
+  .dashboard-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sidebar {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .metric-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .alert-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .sidebar nav {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 460px) {
+  .dashboard-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

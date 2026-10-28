@@ -1,0 +1,13 @@
+.field select {
+    width: 100%;
+    background: #0b1117;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    padding: 12px;
+    color: var(--text);
+    outline: 0
+}
+
+.field select:focus {
+    border-color: var(--accent)
+}

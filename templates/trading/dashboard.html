@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard | Crypto Pilot{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div><span class="eyebrow">Control center</span>
+    <h1>Paper trading dashboard</h1>
+    <p>Markets, signals, and portfolio performance at a glance.</p>
+  </div>
+  <form method="post" action="{% url 'trading:run_bot' %}">
+    {% csrf_token %}
+    <button class="primary btn btn-primary" type="submit">Run an analysis cycle</button>
+  </form>
+</header>
+
+<section class="status-strip">
+  <span class="status-dot {% if worker.alive %}online{% endif %}"></span>
+  <strong>Worker: {{ worker.label }}</strong>
+  {% if worker.heartbeat %}<span>Last success: {{ worker.heartbeat.last_success_at|date:"Y/m/d H:i:s"|default:"—" }}</span><span>{{ worker.heartbeat.get_status_display }}</span><span>{{ worker.heartbeat.cycles }} cycles</span>{% endif %}
+  <span>{{ configuration.symbols|length }} markets monitored</span>
+  <span>API: {% if configuration.has_wallex_api_key %}Connected{% else %}Not configured{% endif %}</span>
+  <span>Latest code release: <time datetime="{{ code_release.iso }}">{{ code_release.date }}</time>{% if code_release.relative %} · {{ code_release.relative }}{% endif %}</span>
+  <span>Latest results review: <time datetime="{{ results_review.iso }}">{{ results_review.date }}</time>{% if results_review.relative %} · {{ results_review.relative }}{% endif %}</span>
+</section>
+{% if worker.heartbeat.last_error %}<div class="message error alert alert-danger">Latest worker error: {{ worker.heartbeat.last_error }}
+</div>{% endif %}
+
+<form method="get" class="panel dashboard-filters card p-3 p-md-4">
+  <div class="field"><label for="filter-symbol">Market</label><select id="filter-symbol" name="symbol">
+      <option value="">All markets</option>{% for symbol in configuration.symbols %}<option value="{{ symbol }}" {% if filter.symbol == symbol %}selected{% endif %}>{{ symbol }}</option>{% endfor %}
+    </select></div>
+  <div class="field"><label for="filter-side">Side</label><select id="filter-side" name="side">
+      <option value="">Buy and sell</option>
+      <option value="buy" {% if filter.side == 'buy' %}selected{% endif %}>BUY</option>
+      <option value="sell" {% if filter.side == 'sell' %}selected{% endif %}>SELL</option>
+    </select></div>
+  <div class="field"><label for="filter-from">From date</label><input id="filter-from" type="date" name="from"
+      value="{{ filter.from }}"></div>
+  <div class="field"><label for="filter-to">To date</label><input id="filter-to" type="date" name="to"
+      value="{{ filter.to }}"></div>
+  <button class="primary btn btn-primary" type="submit">Apply filters</button>
+  <a class="secondary btn btn-outline-secondary" href="{% url 'trading:dashboard' %}">Clear</a>
+  <a class="secondary btn btn-outline-secondary"
+    href="{% url 'trading:export_trades' %}?symbol={{ filter.symbol }}&side={{ filter.side }}&from={{ filter.from }}&to={{ filter.to }}">Export
+    CSV</a>
+</form>
+
+<section class="content-grid alerts-reports-grid">
+  <article class="panel wide card p-3 p-md-4">
+    <div class="panel-head">
+      <div><span class="eyebrow">Alerts</span>
+        <h2>Notification center <small>{{ unread_alert_count }} unread</small></h2>
+      </div>
+      <form method="post" action="{% url 'trading:mark_alerts_read' %}">{% csrf_token %}<button class="secondary btn btn-outline-secondary"
+          type="submit">Mark all as read</button></form>
+    </div>
+    <div class="alert-list">{% for alert in alerts %}<div
+        class="alert-row {{ alert.severity }} {% if not alert.is_read %}unread{% endif %}"><span class="alert-badge">{{ alert.get_severity_display }}</span>
+        <div><strong>{{ alert.title }}</strong>
+          <p>{{ alert.message }}</p>
+        </div><time>{{ alert.created_at|date:"Y/m/d H:i" }}</time>
+      </div>{% empty %}<div class="empty">No alerts generated yet.</div>{% endfor %}</div>
+  </article>
+  <article class="panel card p-3 p-md-4">
+    <div class="panel-head">
+      <div><span class="eyebrow">Reports</span>
+        <h2>Daily and weekly</h2>
+      </div><a class="secondary btn btn-outline-secondary" href="{% url 'trading:export_reports' %}">CSV</a>
+    </div>
+    <div class="report-list">{% for report in reports %}<div><span>{{ report.get_period_display }} · {{ report.period_start|date:"Y/m/d" }}</span><strong>{{ report.net_profit|floatformat:0 }}
+          Toman</strong><small>{{ report.trade_count }} trades · DD {{ report.maximum_drawdown|floatformat:3 }}</small>
+      </div>{% empty %}<div class="empty">Reports will be generated on the next worker cycle.</div>{% endfor %}</div>
+  </article>
+</section>
+
+<section class="panel card p-3 p-md-4">
+  <div class="panel-head">
+    <div><span class="eyebrow">Performance analysis</span>
+      <h2>Paper trading metrics</h2>
+    </div>
+  </div>
+  <div class="metric-grid">
+    <article class="metric card p-3"><span>Net profit</span><strong>{{ latest_performance.net_profit|default:"—"|floatformat:0 }}</strong><small>Toman</small></article>
+    <article class="metric card p-3"><span>Win Rate</span><strong>{{ latest_performance.win_rate|default:"—"|floatformat:4 }}</strong><small>{{ latest_performance.closed_trades|default:0 }} closed trades</small></article>
+    <article class="metric card p-3"><span>Profit Factor</span><strong>{{ latest_performance.profit_factor|default:"—"|floatformat:4 }}</strong><small>Gross profit / loss</small>
+    </article>
+    <article class="metric card p-3"><span>Maximum Drawdown</span><strong>{{ latest_performance.maximum_drawdown|default:"—"|floatformat:4 }}</strong><small>Decline from peak</small></article>
+    <article class="metric card p-3"><span>Sharpe</span><strong>{{ latest_performance.sharpe_ratio|default:"—"|floatformat:3 }}</strong><small>Annualized</small></article>
+    <article class="metric card p-3"><span>Sortino</span><strong>{{ latest_performance.sortino_ratio|default:"—"|floatformat:3 }}</strong><small>Downside risk</small></article>
+  </div>
+  <div class="analytics-stage"><canvas id="performance-chart"></canvas></div>
+</section>
+
+<section class="metric-grid">
+  <article class="metric card p-3"><span>Total equity</span><strong>{{ latest_equity.total_equity|default:"—"|floatformat:0 }}</strong><small>Toman</small></article>
+  <article class="metric card p-3"><span>Wallets</span><strong>{{ wallets|length }}</strong><small>separate currencies</small></article>
+  <article class="metric card p-3"><span>Risk level</span><strong>{{ configuration.get_risk_level_display }}</strong><small>Position sizing</small></article>
+  <article class="metric card p-3"><span>Trading volume</span><strong>{{ traded_notional|floatformat:0 }}</strong><small>Toman</small></article>
+</section>
+
+<section class="panel card p-3 p-md-4">
+  <div class="panel-head">
+    <div><span class="eyebrow">Historical validation</span>
+      <h2>Walk-forward vs. Buy &amp; Hold</h2>
+    </div>
+  </div>
+  <div class="table-wrap table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Market</th>
+          <th>Bot return</th>
+          <th>Buy &amp; Hold</th>
+          <th>Profit Factor</th>
+          <th>Sharpe</th>
+          <th>Sortino</th>
+          <th>Drawdown</th>
+          <th>Trades / Fold</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in backtests %}<tr>
+          <td><b>{{ run.symbol }}</b></td>
+          <td>{{ run.total_return|floatformat:4 }}</td>
+          <td>{{ run.buy_hold_return|floatformat:4 }}</td>
+          <td>{{ run.profit_factor|default:"—"|floatformat:3 }}</td>
+          <td>{{ run.sharpe_ratio|floatformat:3 }}</td>
+          <td>{{ run.sortino_ratio|floatformat:3 }}</td>
+          <td>{{ run.maximum_drawdown|floatformat:4 }}</td>
+          <td>{{ run.trade_count }} / {{ run.fold_count }}</td>
+        </tr>
+        {% empty %}<tr>
+          <td colspan="8" class="empty">After at least 150 candles are collected, run_backtest records results here.</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel card p-3 p-md-4">
+  <div class="panel-head">
+    <div><span class="eyebrow">Strategy optimization</span>
+      <h2>Validation, overfitting control, and market regime</h2>
+    </div>
+  </div>
+  <div class="table-wrap table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Market</th>
+          <th>Regime</th>
+          <th>Train</th>
+          <th>Validation</th>
+          <th>Final test</th>
+          <th>Overfitting gap</th>
+          <th>Stability</th>
+          <th>Selected parameters</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in optimizations %}<tr>
+          <td><b>{{ run.symbol }}</b></td>
+          <td>{{ run.market_regime }}</td>
+          <td>{{ run.train_return|floatformat:4 }}</td>
+          <td>{{ run.validation_return|floatformat:4 }}</td>
+          <td>{{ run.test_return|floatformat:4 }}</td>
+          <td>{{ run.overfit_gap|floatformat:4 }}</td>
+          <td>{{ run.stability_score|floatformat:3 }}</td>
+          <td><code>{{ run.best_parameters.consensus_threshold }}</code> · {{ run.best_parameters.enabled_strategies|join:", " }}</td>
+        </tr>
+        {% empty %}<tr>
+          <td colspan="8" class="empty">
+After running optimize_strategies, results appear here without automatically changing settings.</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel card p-3 p-md-4">
+  <div class="panel-head">
+    <div><span class="eyebrow">Machine Learning Lab</span>
+      <h2>Model evaluation and drift detection</h2>
+    </div>
+  </div>
+  <div class="table-wrap table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Market</th>
+          <th>Dataset</th>
+          <th>Accuracy</th>
+          <th>F1</th>
+          <th>AUC</th>
+          <th>Probability of a rise</th>
+          <th>Drift PSI</th>
+          <th>Drift status</th>
+          <th>Top feature</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in ml_runs %}<tr>
+          <td><b>{{ run.symbol }}</b></td>
+          <td>{{ run.dataset_size }} rows</td>
+          <td>{{ run.test_metrics.accuracy|floatformat:3 }}</td>
+          <td>{{ run.test_metrics.f1|floatformat:3 }}</td>
+          <td>{{ run.test_metrics.auc|floatformat:3 }}</td>
+          <td>{{ run.latest_probability_up|floatformat:3 }}</td>
+          <td>{{ run.drift_score|floatformat:3 }}</td>
+          <td>{% if run.drift_detected %}<span class="pill sell badge rounded-pill text-bg-secondary">Detected</span>{% else %}<span
+              class="pill buy badge rounded-pill text-bg-secondary">Stable</span>{% endif %}</td>
+          <td>{% for name, value in run.feature_importance.items %}{% if forloop.first %}{{ name }}{% endif %}{% endfor %}</td>
+        </tr>
+        {% empty %}<tr>
+          <td colspan="9" class="empty">After running train_ml_models, research model results appear here.</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel card p-3 p-md-4">
+  <div class="panel-head">
+    <div><span class="eyebrow">Virtual wallet</span>
+      <h2>Balance by currency</h2>
+    </div>
+  </div>
+  <div class="table-wrap table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Currency</th>
+          <th>Initial balance</th>
+          <th>Current balance</th>
+          <th>Realized profit</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for wallet in wallets %}<tr>
+          <td><b>{{ wallet.asset }}</b></td>
+          <td>{{ wallet.initial_balance }}</td>
+          <td>{{ wallet.balance }}</td>
+          <td>{{ wallet.realized_pnl }}</td>
+          <td>{{ wallet.updated_at|date:"Y/m/d H:i" }}</td>
+        </tr>
+        {% empty %}<tr>
+          <td colspan="5" class="empty">Virtual wallets will be created after the next cycle.</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="charts-section">
+  <div class="section-heading">
+    <div><span class="eyebrow">Market analysis</span>
+      <h2>Price and bot trades</h2>
+    </div>
+    <div class="chart-legend"><span><i class="line-key"></i>Price</span><span><i class="buy-key"></i>Buy</span><span><i
+          class="sell-key"></i>Sell</span></div>
+  </div>
+  <div class="chart-grid">
+    {% for chart in market_charts %}
+    <article class="panel token-chart-card card p-3 p-md-4">
+      <div class="token-chart-head">
+        <div><strong>{{ chart.symbol }}</strong><span class="pill {{ chart.latest_action }} badge rounded-pill text-bg-secondary">{{ chart.latest_action|upper }}</span></div>
+        <div class="token-price"><small>Latest price</small><b>{{ chart.last_price|default:"—" }}</b></div>
+      </div>
+      <div class="chart-stage">
+        {% if chart.snapshot_count %}<canvas id="{{ chart.canvas_id }}"></canvas>{% else %}<div class="chart-empty">Run a bot cycle to generate the price chart for this market.</div>{% endif %}
+      </div>
+      <footer class="chart-footer"><span>{{ chart.snapshot_count }} market data points</span><span>{{ chart.trade_count }}
+          trades</span><span title="{{ chart.latest_reason }}">{{ chart.latest_reason|truncatechars:58 }}</span>
+      </footer>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="content-grid">
+  <article class="panel wide card p-3 p-md-4">
+    <div class="panel-head">
+      <div><span class="eyebrow">Positions</span>
+        <h2>Open holdings</h2>
+      </div>
+    </div>
+    <div class="table-wrap table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Market</th>
+            <th>Quantity</th>
+            <th>Average entry</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for position in portfolio.positions.all %}{% if position.quantity > 0 %}<tr>
+            <td><b>{{ position.symbol }}</b></td>
+            <td>{{ position.quantity }}</td>
+            <td>{{ position.average_entry_price }}</td>
+            <td>{{ position.updated_at|date:"Y/m/d H:i" }}</td>
+          </tr>{% endif %}
+          {% empty %}<tr>
+            <td colspan="4" class="empty">No open positions yet.</td>
+          </tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+  <article class="panel card p-3 p-md-4">
+    <span class="eyebrow">Bot behavior</span>
+    <h2>Signal distribution</h2>
+    <div class="signal-list">
+      <div><span class="pill buy badge rounded-pill text-bg-secondary">BUY</span><b>{{ signal_counts.buy|default:0 }}</b></div>
+      <div><span class="pill sell badge rounded-pill text-bg-secondary">SELL</span><b>{{ signal_counts.sell|default:0 }}</b></div>
+      <div><span class="pill hold badge rounded-pill text-bg-secondary">HOLD</span><b>{{ signal_counts.hold|default:0 }}</b></div>
+    </div>
+  </article>
+</section>
+
+<section class="panel card p-3 p-md-4">
+  <div class="panel-head">
+    <div><span class="eyebrow">History</span>
+      <h2>Latest simulated trades</h2>
+    </div>
+  </div>
+  <div class="table-wrap table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Market</th>
+          <th>Side</th>
+          <th>Status</th>
+          <th>Requested</th>
+          <th>Executed</th>
+          <th>Reference price</th>
+          <th>Execution price</th>
+          <th>Fee</th>
+          <th>Slippage</th>
+          <th>Liquidity</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for trade in recent_trades %}<tr>
+          <td><b>{{ trade.strategy.symbol }}</b></td>
+          <td><span class="pill {{ trade.side }} badge rounded-pill text-bg-secondary">{{ trade.side|upper }}</span></td>
+          <td>{{ trade.get_status_display }}</td>
+          <td>{{ trade.requested_quantity|floatformat:8 }}</td>
+          <td>{{ trade.quantity|floatformat:8 }}</td>
+          <td>{{ trade.reference_price }}</td>
+          <td>{{ trade.price }}</td>
+          <td>{{ trade.fee_amount|floatformat:6 }}</td>
+          <td>{{ trade.slippage_bps|floatformat:2 }} bps</td>
+          <td>{{ trade.liquidity_fraction|floatformat:3 }}</td>
+          <td>{{ trade.created_at|date:"Y/m/d H:i" }}</td>
+        </tr>
+        {% empty %}<tr>
+          <td colspan="11" class="empty">No trades match the selected filters.</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{ market_charts|json_script:"market-chart-data" }}
+{{ analytics_chart|json_script:"analytics-chart-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'trading/market-charts.js' %}"></script>
+<script src="{% static 'trading/dashboard-analytics.js' %}"></script>
+{% endblock %}

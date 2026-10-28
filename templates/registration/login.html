@@ -1,0 +1,26 @@
+{% load static %}
+<!doctype html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Log in | Crypto Pilot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+<link rel="stylesheet" href="{% static 'trading/bootstrap-theme.css' %}">
+</head>
+
+<body class="login-page bg-body-tertiary">
+    <main class="login-card card p-4 shadow-sm"><span class="brand-mark">CP</span><span class="eyebrow">Protected area</span>
+        <h1>Log in to Crypto Pilot</h1>
+        <p>Log in to manage settings and run the bot.</p>{% if form.errors %}<div class="message error alert alert-danger">
+The username or password is incorrect.</div>{% endif %}<form method="post">{% csrf_token %}<div class="field"><label
+                    for="id_username">Username</label><input class="form-control" type="text" name="username" id="id_username" value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" required autofocus></div>
+            <div class="field"><label for="id_password">Password</label><input class="form-control" type="password" name="password" id="id_password" autocomplete="current-password" required></div><button
+                class="primary full btn btn-primary" type="submit">Log in to dashboard</button><input type="hidden" name="next"
+                value="{{ next }}">
+        </form>
+    </main>
+</body>
+
+</html>

@@ -1,0 +1,171 @@
+.charts-section {
+    margin: 28px 0;
+    width: 100%
+}
+
+.section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    margin-bottom: 14px
+}
+
+.section-heading h2 {
+    margin: 5px 0 0
+}
+
+.chart-legend {
+    display: flex;
+    gap: 16px;
+    color: var(--muted);
+    font-size: 12px
+}
+
+.chart-legend span {
+    display: flex;
+    align-items: center;
+    gap: 7px
+}
+
+.chart-legend i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%
+}
+
+.line-key {
+    background: var(--accent)
+}
+
+.buy-key {
+    background: #69f2c2
+}
+
+.sell-key {
+    background: var(--danger)
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    width: 100%
+}
+
+.token-chart-card {
+    margin: 0;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden
+}
+
+.token-chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px
+}
+
+.token-chart-head>div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 10px
+}
+
+.token-chart-head strong {
+    font-size: 18px;
+    direction: ltr
+}
+
+.token-price {
+    text-align: left
+}
+
+.token-price small,
+.token-price b {
+    display: block
+}
+
+.token-price small {
+    color: var(--muted);
+    font-size: 10px;
+    margin-bottom: 4px
+}
+
+.token-price b {
+    direction: ltr
+}
+
+.chart-stage {
+    height: 380px;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    direction: ltr
+}
+
+.chart-stage canvas {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important
+}
+
+.chart-empty {
+    height: 100%;
+    display: grid;
+    place-items: center;
+    border: 1px dashed var(--line);
+    border-radius: 13px;
+    color: var(--muted);
+    text-align: center;
+    padding: 20px
+}
+
+.chart-footer {
+    display: flex;
+    gap: 14px;
+    border-top: 1px solid var(--line);
+    padding-top: 13px;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 11px
+}
+
+.chart-footer span:last-child {
+    margin-right: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 50%
+}
+
+@media(max-width:900px) {
+    .chart-stage {
+        height: 320px
+    }
+}
+
+@media(max-width:600px) {
+    .section-heading {
+        align-items: flex-start;
+        gap: 12px;
+        flex-direction: column
+    }
+
+    .chart-stage {
+        height: 260px
+    }
+
+    .chart-footer {
+        flex-wrap: wrap
+    }
+
+    .chart-footer span:last-child {
+        max-width: 100%;
+        width: 100%
+    }
+}
